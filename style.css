@@ -120,6 +120,27 @@ body {
 
 .btn-ghost:hover { background: #fef2f2; border-color: var(--danger); }
 
+/* ── Filter subtotal bar ── */
+.filter-subtotal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 20px;
+  background: #eff6ff;
+  border-bottom: 1px solid #bfdbfe;
+  font-size: 13px;
+}
+
+.filter-subtotal-label {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.filter-subtotal-amount {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 /* ── Expense list ── */
 .expense-list {
   list-style: none;

@@ -24,6 +24,9 @@ const totalEl = document.getElementById('total');
 const monthTotalEl = document.getElementById('month-total');
 const countEl = document.getElementById('count');
 const filterSelect = document.getElementById('filter-category');
+const filterSubtotal = document.getElementById('filter-subtotal');
+const filterSubtotalLabel = document.getElementById('filter-subtotal-label');
+const filterSubtotalAmount = document.getElementById('filter-subtotal-amount');
 const clearBtn = document.getElementById('clear-all');
 const toast = document.getElementById('toast');
 const fab = document.getElementById('open-modal');
@@ -105,6 +108,15 @@ function render() {
   totalEl.textContent = fmt(expenses.reduce((s, e) => s + e.amount, 0));
   monthTotalEl.textContent = fmt(thisMonth.reduce((s, e) => s + e.amount, 0));
   countEl.textContent = expenses.length;
+
+  if (filter) {
+    const subtotal = filtered.reduce((s, e) => s + e.amount, 0);
+    filterSubtotalLabel.textContent = `${CATEGORY_EMOJI[filter] ?? '📦'} ${filter}`;
+    filterSubtotalAmount.textContent = fmt(subtotal);
+    filterSubtotal.hidden = false;
+  } else {
+    filterSubtotal.hidden = true;
+  }
 
   list.innerHTML = '';
 
