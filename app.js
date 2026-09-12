@@ -20,18 +20,44 @@ const amountInput = document.getElementById('amount');
 const categoryInput = document.getElementById('category');
 const noteInput = document.getElementById('note');
 const list = document.getElementById('expense-list');
-const emptyState = document.getElementById('empty-state');
 const totalEl = document.getElementById('total');
 const monthTotalEl = document.getElementById('month-total');
 const countEl = document.getElementById('count');
 const filterSelect = document.getElementById('filter-category');
 const clearBtn = document.getElementById('clear-all');
 const toast = document.getElementById('toast');
+const fab = document.getElementById('open-modal');
+const backdrop = document.getElementById('modal-backdrop');
+const drawer = document.getElementById('modal-drawer');
 
 // --- Init ---
 render();
 
-// --- Events ---
+// --- Modal ---
+function openModal() {
+  drawer.classList.add('is-open');
+  backdrop.classList.add('is-open');
+  fab.classList.add('is-open');
+  setTimeout(() => amountInput.focus(), 300);
+}
+
+function closeModal() {
+  drawer.classList.remove('is-open');
+  backdrop.classList.remove('is-open');
+  fab.classList.remove('is-open');
+}
+
+fab.addEventListener('click', () => {
+  drawer.classList.contains('is-open') ? closeModal() : openModal();
+});
+
+backdrop.addEventListener('click', closeModal);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// --- Form ---
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   const amount = parseFloat(amountInput.value);
@@ -50,7 +76,7 @@ form.addEventListener('submit', (e) => {
   render();
   form.reset();
   categoryInput.value = '';
-  amountInput.focus();
+  closeModal();
   showToast('Expense added');
 });
 
@@ -65,12 +91,11 @@ clearBtn.addEventListener('click', () => {
   showToast('All expenses cleared');
 });
 
-// --- Core ---
+// --- Render ---
 function render() {
   const filter = filterSelect.value;
   const filtered = filter ? expenses.filter(e => e.category === filter) : expenses;
 
-  // Summary always uses all expenses, not filtered
   const now = new Date();
   const thisMonth = expenses.filter(e => {
     const d = new Date(e.date);
@@ -86,7 +111,9 @@ function render() {
   if (!filtered.length) {
     const li = document.createElement('li');
     li.className = 'empty-state';
-    li.textContent = filter ? 'No expenses in this category.' : 'No expenses yet. Add one above.';
+    li.textContent = filter
+      ? 'No expenses in this category.'
+      : 'No expenses yet. Tap + to add one.';
     list.appendChild(li);
     return;
   }
@@ -107,12 +134,12 @@ function render() {
           <span class="item-amount">${fmt(expense.amount)}</span>
         </div>
         <div class="item-meta">
-          ${expense.note ? `<span class="item-note" title="${escape(expense.note)}">${escape(expense.note)}</span>` : ''}
+          ${expense.note ? `<span class="item-note" title="${esc(expense.note)}">${esc(expense.note)}</span>` : ''}
           <span class="item-date">${dateStr}</span>
         </div>
       </div>
       <button class="delete-btn" title="Delete" aria-label="Delete expense">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
           <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </button>
@@ -156,11 +183,19 @@ function formatDate(iso) {
   if (diff < 3_600_000) return Math.floor(diff / 60_000) + 'm ago';
   if (diff < 86_400_000) return Math.floor(diff / 3_600_000) + 'h ago';
   if (diff < 604_800_000) return Math.floor(diff / 86_400_000) + 'd ago';
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+  });
 }
 
-function escape(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function esc(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 let toastTimer;
