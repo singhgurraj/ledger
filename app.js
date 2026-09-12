@@ -139,7 +139,7 @@ function render() {
     const dateStr = formatDate(expense.date);
 
     li.innerHTML = `
-      <div class="category-badge" title="${expense.category}">${emoji}</div>
+      <div class="category-badge" data-cat="${expense.category}" title="${expense.category}">${emoji}</div>
       <div class="item-body">
         <div class="item-top">
           <span class="item-category">${expense.category}</span>

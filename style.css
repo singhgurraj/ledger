@@ -5,7 +5,7 @@
 }
 
 :root {
-  --bg: #f5f5f4;
+  --bg: #f1f0ef;
   --surface: #ffffff;
   --border: #e7e5e4;
   --text: #1c1917;
@@ -13,16 +13,16 @@
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --danger: #dc2626;
-  --radius: 12px;
-  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --radius: 14px;
+  --shadow: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05);
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  padding: 32px 16px 120px;
+  padding: 24px 16px 120px;
 }
 
 .container {
@@ -33,13 +33,36 @@ body {
   gap: 20px;
 }
 
+/* ── App title ── */
+.app-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 /* ── Hero ── */
 .hero {
-  background: var(--accent);
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
   color: #fff;
   border-radius: var(--radius);
   padding: 28px 24px 24px;
-  box-shadow: 0 4px 16px rgba(37,99,235,.25);
+  box-shadow: 0 6px 24px rgba(37,99,235,.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 180px;
+  height: 180px;
+  background: rgba(255,255,255,.06);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .hero-label {
@@ -147,10 +170,11 @@ body {
 }
 
 .empty-state {
-  padding: 48px 24px;
+  padding: 56px 24px;
   text-align: center;
   color: var(--muted);
   font-size: 14px;
+  line-height: 1.6;
 }
 
 .expense-item {
@@ -169,13 +193,21 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   font-size: 19px;
   flex-shrink: 0;
-  background: var(--bg);
 }
+
+.category-badge[data-cat="Food & Drink"]   { background: #fef9c3; }
+.category-badge[data-cat="Transport"]       { background: #dbeafe; }
+.category-badge[data-cat="Housing"]         { background: #dcfce7; }
+.category-badge[data-cat="Health"]          { background: #fce7f3; }
+.category-badge[data-cat="Shopping"]        { background: #fef3c7; }
+.category-badge[data-cat="Entertainment"]   { background: #ede9fe; }
+.category-badge[data-cat="Utilities"]       { background: #e0f2fe; }
+.category-badge[data-cat="Other"]           { background: #f3f4f6; }
 
 .item-body {
   flex: 1;
