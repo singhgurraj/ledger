@@ -19,11 +19,41 @@
       <div class="hero-label">Total spent</div>
       <div class="hero-total" id="total">$0.00</div>
       <div class="hero-stats">
+        <span class="hero-stat"><span class="hero-stat-value" id="year-total">$0.00</span> this year</span>
+        <span class="hero-divider">·</span>
         <span class="hero-stat"><span class="hero-stat-value" id="month-total">$0.00</span> this month</span>
         <span class="hero-divider">·</span>
         <span class="hero-stat"><span class="hero-stat-value" id="count">0</span> entries</span>
+        <span class="hero-divider">·</span>
+        <button class="hero-budget-btn" id="budget-btn" aria-label="Set monthly budget">
+          <span id="budget-display">Set budget</span>
+        </button>
       </div>
+      <form class="budget-form" id="budget-form" hidden>
+        <span class="budget-form-label">Monthly budget</span>
+        <div class="budget-amount-wrap">
+          <span class="budget-currency">$</span>
+          <input type="number" id="budget-input" placeholder="0" min="1" step="1" />
+        </div>
+        <button type="submit" class="budget-form-save">Save</button>
+        <button type="button" id="budget-cancel" class="budget-form-cancel">Cancel</button>
+      </form>
     </header>
+
+    <!-- Budget alert -->
+    <div class="budget-alert" id="budget-alert" role="alert" aria-live="polite" hidden>
+      <svg class="budget-alert-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M8 1.5L1 14h14L8 1.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M8 6v4M8 11.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span id="budget-alert-msg"></span>
+    </div>
+
+    <!-- Category breakdown -->
+    <section class="breakdown-section" id="breakdown-section" hidden>
+      <div class="breakdown-header">By category</div>
+      <ul class="breakdown-list" id="breakdown-list"></ul>
+    </section>
 
     <!-- Expense list -->
     <section class="list-section">
@@ -41,8 +71,33 @@
             <option value="Utilities">Utilities</option>
             <option value="Other">Other</option>
           </select>
+          <button class="btn-filter" id="favorites-toggle" aria-pressed="false">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M7 1l1.545 3.13L12 4.635l-2.5 2.435.59 3.44L7 8.885 3.91 10.51l.59-3.44L2 4.635l3.455-.505L7 1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+            Favorites
+          </button>
+          <button class="btn-ghost" id="export-csv">Export CSV</button>
           <button class="btn-ghost" id="clear-all">Clear all</button>
         </div>
+      </div>
+      <div class="month-export" id="month-export" hidden>
+        <label for="month-export-select">Export month</label>
+        <select id="month-export-select"><option value="">Select a month…</option></select>
+        <button class="btn-ghost" id="month-export-btn">Export CSV</button>
+      </div>
+
+      <div class="search-bar">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input type="search" id="search" placeholder="Search descriptions…" autocomplete="off" />
+        <button class="search-clear" id="search-clear" aria-label="Clear search" hidden>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </button>
       </div>
       <div class="filter-subtotal" id="filter-subtotal" hidden>
         <span class="filter-subtotal-label" id="filter-subtotal-label"></span>
@@ -70,8 +125,9 @@
         <label for="amount">Amount</label>
         <div class="amount-wrap">
           <span class="currency">$</span>
-          <input type="number" id="amount" placeholder="0.00" min="0.01" step="0.01" required />
+          <input type="number" id="amount" placeholder="0.00" step="0.01" required />
         </div>
+        <p class="field-error" id="amount-error" hidden></p>
       </div>
       <div class="field">
         <label for="category">Category</label>
@@ -91,8 +147,44 @@
         <label for="note">Note <span class="optional">(optional)</span></label>
         <input type="text" id="note" placeholder="What was this for?" maxlength="120" />
       </div>
+      <div class="dupe-warning" id="dupe-warning" hidden>
+        <svg class="dupe-warning-icon" width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 1.5L1 14h14L8 1.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M8 6v4M8 11.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <div class="dupe-warning-body">
+          <p class="dupe-warning-msg" id="dupe-warning-msg"></p>
+          <div class="dupe-warning-actions">
+            <button type="button" id="dupe-cancel">Cancel</button>
+            <button type="button" id="dupe-add-anyway">Add anyway</button>
+          </div>
+        </div>
+      </div>
       <button type="submit" class="btn-primary">Add Expense</button>
     </form>
+  </div>
+
+  <!-- Receipt export dialog -->
+  <div class="dialog-backdrop" id="receipt-backdrop"></div>
+  <div class="receipt-dialog" id="receipt-dialog" role="dialog" aria-modal="true" aria-labelledby="receipt-dialog-title">
+    <div class="receipt-dialog-header">
+      <h3 id="receipt-dialog-title" class="receipt-dialog-title">Export Expense</h3>
+      <button class="receipt-dialog-close" id="receipt-close" aria-label="Close dialog">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="receipt-preview" id="receipt-preview"></div>
+    <div class="receipt-dialog-footer">
+      <button class="btn-secondary" id="receipt-cancel">Cancel</button>
+      <button class="btn-primary receipt-download-btn" id="receipt-download">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M7 1v7.5M4.5 6L7 8.5 9.5 6M2 11v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Download PDF
+      </button>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
