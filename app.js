@@ -172,14 +172,20 @@ function deleteExpense(id) {
 // --- Storage ---
 function load() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? [];
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return Array.isArray(raw) ? raw : [];
   } catch {
     return [];
   }
 }
 
 function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+  } catch (err) {
+    console.error('Failed to save to localStorage:', err);
+    showToast('Could not save — storage may be full');
+  }
 }
 
 // --- Helpers ---
