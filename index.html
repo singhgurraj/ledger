@@ -62,7 +62,7 @@
         <div class="list-controls">
           <select id="filter-category">
             <option value="">All categories</option>
-            <option value="Food & Drink">Food & Drink</option>
+            <option value="Food & Drink">Food &amp; Drink</option>
             <option value="Transport">Transport</option>
             <option value="Housing">Housing</option>
             <option value="Health">Health</option>
@@ -99,6 +99,7 @@
           </svg>
         </button>
       </div>
+      <div class="tag-cloud" id="tag-cloud" hidden></div>
       <div class="filter-subtotal" id="filter-subtotal" hidden>
         <span class="filter-subtotal-label" id="filter-subtotal-label"></span>
         <span class="filter-subtotal-amount" id="filter-subtotal-amount"></span>
@@ -133,7 +134,7 @@
         <label for="category">Category</label>
         <select id="category" required>
           <option value="" disabled selected>Select a category</option>
-          <option value="Food & Drink">Food & Drink</option>
+          <option value="Food & Drink">Food &amp; Drink</option>
           <option value="Transport">Transport</option>
           <option value="Housing">Housing</option>
           <option value="Health">Health</option>
@@ -146,6 +147,44 @@
       <div class="field">
         <label for="note">Note <span class="optional">(optional)</span></label>
         <input type="text" id="note" placeholder="What was this for?" maxlength="120" />
+      </div>
+      <div class="field">
+        <label for="tags">Tags <span class="optional">(optional)</span></label>
+        <input type="text" id="tags" placeholder="work, travel, client…" maxlength="200" autocomplete="off" />
+      </div>
+      <div class="field field-split">
+        <label class="split-label">
+          <input type="checkbox" id="split-toggle" />
+          Split evenly
+        </label>
+        <div class="split-controls" id="split-controls" hidden>
+          <span class="split-divider">÷</span>
+          <input type="number" id="split-count" value="2" min="2" max="99" step="1" />
+          <span class="split-people-label">people</span>
+          <span class="split-share-preview" id="split-share-preview"></span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Receipt <span class="optional">(optional)</span></label>
+        <div class="receipt-upload-area">
+          <input type="file" id="receipt-input" accept="image/*" style="display:none" />
+          <label for="receipt-input" class="receipt-upload-label" id="receipt-upload-label">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+              <path d="M7.5 1v8M5 4.5l2.5-3.5 2.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 11v1.5A1.5 1.5 0 003.5 14h8a1.5 1.5 0 001.5-1.5V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span>Attach photo</span>
+          </label>
+          <div class="receipt-upload-preview" id="receipt-upload-preview" hidden>
+            <img class="receipt-upload-img" id="receipt-upload-img" alt="Receipt preview" />
+            <span class="receipt-upload-filename" id="receipt-upload-filename"></span>
+            <button type="button" class="receipt-upload-clear" id="receipt-upload-clear" aria-label="Remove receipt">
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
       </div>
       <div class="dupe-warning" id="dupe-warning" hidden>
         <svg class="dupe-warning-icon" width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -185,6 +224,16 @@
         Download PDF
       </button>
     </div>
+  </div>
+
+  <!-- Image lightbox -->
+  <div class="img-lightbox" id="img-lightbox" hidden>
+    <button class="lightbox-close" id="lightbox-close" aria-label="Close image">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <img class="lightbox-img" id="lightbox-img" alt="Receipt" />
   </div>
 
   <div class="toast" id="toast"></div>

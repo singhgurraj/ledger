@@ -458,6 +458,58 @@ body {
   flex-shrink: 0;
 }
 
+.item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.item-tag {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent);
+  background: #eff6ff;
+  border-radius: 4px;
+  padding: 1px 6px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+
+.item-tag:hover { background: #dbeafe; }
+
+/* ── Tag cloud ── */
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 20px 2px;
+}
+
+.tag-cloud[hidden] { display: none; }
+
+.tag-chip {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  font-family: inherit;
+}
+
+.tag-chip:hover { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
+
+.tag-chip.is-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
 .favorite-btn,
 .recurrence-btn,
 .export-btn {
@@ -657,6 +709,76 @@ input.is-invalid {
   font-size: 12px;
   color: var(--danger);
   margin-top: 5px;
+}
+
+/* ── Split field ── */
+.field-split label.split-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.field-split label.split-label input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.split-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.split-divider {
+  font-size: 16px;
+  color: var(--muted);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.split-controls input[type="number"] {
+  width: 72px;
+  padding: 7px 10px;
+  font-size: 14px;
+  border-radius: 7px;
+}
+
+.split-people-label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.split-share-preview {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ── Split badge on expense item ── */
+.item-amount-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.item-split-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: #7c3aed;
+  background: #ede9fe;
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
 }
 
 /* ── Duplicate warning ── */
@@ -1014,3 +1136,142 @@ input[type="number"]::-webkit-outer-spin-button {
   border-radius: 2px;
   transition: width 0.3s ease;
 }
+
+/* ── Receipt upload field ── */
+.receipt-upload-area { position: relative; }
+
+.receipt-upload-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  user-select: none;
+}
+
+.receipt-upload-label:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.receipt-upload-label[hidden] { display: none; }
+
+.receipt-upload-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.receipt-upload-preview[hidden] { display: none; }
+
+.receipt-upload-img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.receipt-upload-filename {
+  font-size: 12px;
+  color: var(--muted);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.receipt-upload-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 5px;
+  border-radius: 6px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.receipt-upload-clear:hover { color: var(--danger); background: #fef2f2; }
+
+/* ── Receipt thumbnail on expense item ── */
+.receipt-thumb {
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: 7px;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  transition: opacity 0.15s, transform 0.15s, border-color 0.15s;
+}
+
+.receipt-thumb:hover {
+  opacity: 0.85;
+  transform: scale(1.07);
+  border-color: var(--accent);
+}
+
+/* ── Receipt image in export dialog ── */
+.receipt-preview-img {
+  width: 100%;
+  border-radius: 8px;
+  margin-top: 4px;
+  object-fit: contain;
+  max-height: 180px;
+  cursor: pointer;
+}
+
+/* ── Image lightbox ── */
+.img-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.88);
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.img-lightbox[hidden] { display: none; }
+
+.lightbox-img {
+  max-width: 100%;
+  max-height: calc(100vh - 80px);
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.5);
+  object-fit: contain;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255,255,255,.18);
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.lightbox-close:hover { background: rgba(255,255,255,.3); }

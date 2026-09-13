@@ -25,9 +25,11 @@ let visibleCount = PAGE_SIZE;
 let searchQuery = '';
 let budgetLimit = loadBudget();
 let showFavoritesOnly = false;
+let filterTag = null;
 let exportExpenseId = null;
 let deleteStack = [];
 let pendingExpense = null;
+let pendingReceiptImage = null;
 
 // --- Search index ---
 // Inverted index: token → Set<expenseId>.
@@ -58,8 +60,14 @@ function buildIndex() {
   for (const e of expenses) indexAdd(e);
 }
 
+function expenseTokens(expense) {
+  const toks = tokenize(expense.note);
+  for (const tag of (expense.tags ?? [])) for (const t of tokenize(tag)) toks.push(t);
+  return toks;
+}
+
 function indexAdd(expense) {
-  for (const tok of tokenize(expense.note)) {
+  for (const tok of expenseTokens(expense)) {
     let ids = searchIndex.get(tok);
     if (!ids) { ids = new Set(); searchIndex.set(tok, ids); }
     ids.add(expense.id);
@@ -68,10 +76,14 @@ function indexAdd(expense) {
 }
 
 function indexRemove(expense) {
-  for (const tok of tokenize(expense.note)) {
+  for (const tok of expenseTokens(expense)) {
     searchIndex.get(tok)?.delete(expense.id);
   }
   queryCache.clear();
+}
+
+function parseTags(input) {
+  return [...new Set(input.split(',').map(t => t.trim().toLowerCase()).filter(Boolean))];
 }
 
 function tokenize(note) {
@@ -131,6 +143,8 @@ const monthTotalEl = document.getElementById('month-total');
 const countEl = document.getElementById('count');
 const breakdownSection = document.getElementById('breakdown-section');
 const breakdownList = document.getElementById('breakdown-list');
+const tagsInput = document.getElementById('tags');
+const tagCloud = document.getElementById('tag-cloud');
 const filterSelect = document.getElementById('filter-category');
 const filterSubtotal = document.getElementById('filter-subtotal');
 const filterSubtotalLabel = document.getElementById('filter-subtotal-label');
@@ -147,6 +161,15 @@ const dupeWarning   = document.getElementById('dupe-warning');
 const dupeWarningMsg = document.getElementById('dupe-warning-msg');
 const dupeAddAnyway = document.getElementById('dupe-add-anyway');
 const dupeCancelBtn = document.getElementById('dupe-cancel');
+const receiptInput = document.getElementById('receipt-input');
+const receiptUploadLabel = document.getElementById('receipt-upload-label');
+const receiptUploadPreview = document.getElementById('receipt-upload-preview');
+const receiptUploadImg = document.getElementById('receipt-upload-img');
+const receiptUploadFilename = document.getElementById('receipt-upload-filename');
+const receiptUploadClear = document.getElementById('receipt-upload-clear');
+const imgLightbox = document.getElementById('img-lightbox');
+const lightboxClose = document.getElementById('lightbox-close');
+const lightboxImg = document.getElementById('lightbox-img');
 const receiptBackdrop = document.getElementById('receipt-backdrop');
 const receiptDialog = document.getElementById('receipt-dialog');
 const receiptPreview = document.getElementById('receipt-preview');
@@ -164,6 +187,33 @@ const budgetInput = document.getElementById('budget-input');
 const budgetCancel = document.getElementById('budget-cancel');
 const budgetAlert = document.getElementById('budget-alert');
 const budgetAlertMsg = document.getElementById('budget-alert-msg');
+const splitToggle = document.getElementById('split-toggle');
+const splitControls = document.getElementById('split-controls');
+const splitCountInput = document.getElementById('split-count');
+const splitSharePreview = document.getElementById('split-share-preview');
+
+// --- Split helpers ---
+function effectiveAmount(expense) {
+  if (!expense.splitWith) return expense.amount;
+  const totalCents = Math.round(expense.amount * 100);
+  const n = expense.splitWith;
+  const otherCents = Math.floor(totalCents / n);
+  return (totalCents - (n - 1) * otherCents) / 100;
+}
+
+function updateSplitPreview() {
+  if (!splitToggle.checked) return;
+  const total = parseFloat(amountInput.value);
+  const n = parseInt(splitCountInput.value, 10);
+  if (total > 0 && n >= 2) {
+    const totalCents = Math.round(total * 100);
+    const otherCents = Math.floor(totalCents / n);
+    const myCents = totalCents - (n - 1) * otherCents;
+    splitSharePreview.textContent = `· your share: ${formatCurrency(myCents / 100)}`;
+  } else {
+    splitSharePreview.textContent = '';
+  }
+}
 
 // Sentinel node watched by IntersectionObserver to trigger loading the next page.
 const sentinel = document.createElement('li');
@@ -192,6 +242,18 @@ function closeModal() {
   pendingExpense = null;
   dupeWarning.hidden = true;
   clearAmountError();
+  clearReceiptUpload();
+  splitToggle.checked = false;
+  splitControls.hidden = true;
+  splitCountInput.value = '2';
+  splitSharePreview.textContent = '';
+}
+
+function clearReceiptUpload() {
+  pendingReceiptImage = null;
+  receiptInput.value = '';
+  receiptUploadPreview.hidden = true;
+  receiptUploadLabel.hidden = false;
 }
 
 fab.addEventListener('click', () => {
@@ -201,8 +263,22 @@ fab.addEventListener('click', () => {
 backdrop.addEventListener('click', closeModal);
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Escape') {
+    if (!imgLightbox.hidden) { closeLightbox(); return; }
+    closeModal();
+  }
 });
+
+splitToggle.addEventListener('change', () => {
+  splitControls.hidden = !splitToggle.checked;
+  if (splitToggle.checked) {
+    splitCountInput.focus();
+    updateSplitPreview();
+  }
+});
+
+splitCountInput.addEventListener('input', updateSplitPreview);
+amountInput.addEventListener('input', updateSplitPreview);
 
 // --- Event delegation for delete + favorite + export (one listener instead of one per item) ---
 list.addEventListener('click', e => {
@@ -228,6 +304,22 @@ list.addEventListener('click', e => {
   if (exp) {
     const li = exp.closest('[data-id]');
     if (li) openReceiptDialog(li.dataset.id);
+    return;
+  }
+  const itag = e.target.closest('.item-tag');
+  if (itag) {
+    filterTag = itag.dataset.tag;
+    visibleCount = PAGE_SIZE;
+    render();
+    return;
+  }
+  const thumb = e.target.closest('.receipt-thumb');
+  if (thumb) {
+    const li = thumb.closest('[data-id]');
+    if (li) {
+      const expense = expenses.find(ex => ex.id === li.dataset.id);
+      if (expense?.receiptImage) openLightbox(expense.receiptImage);
+    }
   }
 });
 
@@ -264,12 +356,17 @@ form.addEventListener('submit', (e) => {
   }
   clearAmountError();
 
+  const tags = parseTags(tagsInput.value);
+
+  const splitWith = splitToggle.checked ? Math.max(2, parseInt(splitCountInput.value, 10) || 2) : undefined;
   const expense = {
     id: crypto.randomUUID(),
     amount,
     category: categoryInput.value,
     note: noteInput.value.trim(),
+    tags: tags.length ? tags : undefined,
     date: new Date().toISOString(),
+    splitWith,
   };
 
   const dupe = findDuplicate(expense);
@@ -304,7 +401,60 @@ dupeCancelBtn.addEventListener('click', () => {
   dupeWarning.hidden = true;
 });
 
+// --- Receipt image upload ---
+receiptInput.addEventListener('change', () => {
+  const file = receiptInput.files[0];
+  if (!file) return;
+  compressImage(file, 800, 0.65).then(dataUrl => {
+    pendingReceiptImage = dataUrl;
+    receiptUploadImg.src = dataUrl;
+    receiptUploadFilename.textContent = file.name;
+    receiptUploadLabel.hidden = true;
+    receiptUploadPreview.hidden = false;
+  });
+});
+
+receiptUploadClear.addEventListener('click', clearReceiptUpload);
+
+function compressImage(file, maxPx, quality) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// --- Image lightbox ---
+function openLightbox(src) {
+  lightboxImg.src = src;
+  imgLightbox.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  imgLightbox.hidden = true;
+  lightboxImg.src = '';
+  document.body.style.overflow = '';
+}
+
+lightboxClose.addEventListener('click', closeLightbox);
+imgLightbox.addEventListener('click', (e) => { if (e.target === imgLightbox) closeLightbox(); });
+
 function commitExpense(expense) {
+  if (pendingReceiptImage) expense.receiptImage = pendingReceiptImage;
   debugLog('expense added', expense);
   expenses.unshift(expense);
   indexAdd(expense);
@@ -381,12 +531,24 @@ favoritesToggle.addEventListener('click', () => {
   render();
 });
 
+tagCloud.addEventListener('click', e => {
+  const chip = e.target.closest('.tag-chip');
+  if (!chip) return;
+  filterTag = filterTag === chip.dataset.tag ? null : chip.dataset.tag;
+  visibleCount = PAGE_SIZE;
+  render();
+});
+
 // --- Receipt export dialog ---
 function openReceiptDialog(id) {
   exportExpenseId = id;
   const expense = expenses.find(e => e.id === id);
   if (!expense) return;
   receiptPreview.innerHTML = buildReceiptPreview(expense);
+  if (expense.receiptImage) {
+    const previewImg = receiptPreview.querySelector('.receipt-preview-img');
+    if (previewImg) previewImg.addEventListener('click', () => openLightbox(expense.receiptImage));
+  }
   receiptDialog.classList.add('is-open');
   receiptBackdrop.classList.add('is-open');
 }
@@ -418,6 +580,10 @@ function buildReceiptPreview(expense) {
       ${expense.note ? `<div class="receipt-field receipt-field-wide">
         <div class="receipt-field-label">Note</div>
         <div class="receipt-field-value">${esc(expense.note)}</div>
+      </div>` : ''}
+      ${expense.receiptImage ? `<div class="receipt-field receipt-field-wide">
+        <div class="receipt-field-label">Receipt Photo</div>
+        <img class="receipt-preview-img" src="${expense.receiptImage}" alt="Receipt photo" title="Click to enlarge" />
       </div>` : ''}
     </div>`;
 }
@@ -486,6 +652,7 @@ clearBtn.addEventListener('click', () => {
   if (!confirm('Delete all expenses? This cannot be undone.')) return;
   expenses = [];
   deleteStack = [];
+  filterTag = null;
   buildIndex();
   save();
   visibleCount = PAGE_SIZE;
@@ -553,6 +720,7 @@ function render() {
   let filtered = filter ? expenses.filter(e => e.category === filter) : expenses;
   if (matchIds !== null) filtered = filtered.filter(e => matchIds.has(e.id));
   if (showFavoritesOnly) filtered = filtered.filter(e => e.favorite);
+  if (filterTag) filtered = filtered.filter(e => e.tags?.includes(filterTag));
 
   // Single pass: stats + category totals together
   const now = new Date();
@@ -565,14 +733,15 @@ function render() {
   const byCategory = new Map();
 
   for (const e of expenses) {
-    total += e.amount;
+    const amt = effectiveAmount(e);
+    total += amt;
     const d = new Date(e.date);
-    if (d.getFullYear() === ny) yearTotal += e.amount;
-    if (d.getFullYear() === ny && d.getMonth() === nm) monthTotal += e.amount;
-    byCategory.set(e.category, (byCategory.get(e.category) ?? 0) + e.amount);
+    if (d.getFullYear() === ny) yearTotal += amt;
+    if (d.getFullYear() === ny && d.getMonth() === nm) monthTotal += amt;
+    byCategory.set(e.category, Math.round(((byCategory.get(e.category) ?? 0) + amt) * 100) / 100);
   }
-  if (filter || showFavoritesOnly) {
-    for (const e of filtered) filterTotal += e.amount;
+  if (filter || showFavoritesOnly || filterTag) {
+    for (const e of filtered) filterTotal += effectiveAmount(e);
   }
 
   totalEl.textContent = formatCurrency(total);
@@ -607,10 +776,34 @@ function render() {
     breakdownSection.hidden = true;
   }
 
-  if (filter || showFavoritesOnly) {
-    const catPart = filter ? `${CATEGORY_EMOJI[filter] ?? '📦'} ${filter}` : '';
-    const favPart = showFavoritesOnly ? '★ Favorites' : '';
-    filterSubtotalLabel.textContent = catPart && favPart ? `${favPart} · ${catPart}` : catPart || favPart;
+  // Tag cloud
+  const allTags = new Map();
+  for (const e of expenses) for (const t of (e.tags ?? [])) allTags.set(t, (allTags.get(t) ?? 0) + 1);
+  if (allTags.size) {
+    const frag = document.createDocumentFragment();
+    for (const tag of [...allTags.keys()].sort()) {
+      const btn = document.createElement('button');
+      btn.className = 'tag-chip' + (filterTag === tag ? ' is-active' : '');
+      btn.dataset.tag = tag;
+      btn.textContent = tag;
+      btn.setAttribute('aria-pressed', String(filterTag === tag));
+      frag.appendChild(btn);
+    }
+    tagCloud.innerHTML = '';
+    tagCloud.appendChild(frag);
+    tagCloud.hidden = false;
+  } else {
+    tagCloud.hidden = true;
+    if (filterTag) filterTag = null;
+  }
+
+  if (filter || showFavoritesOnly || filterTag) {
+    const parts = [
+      showFavoritesOnly ? '★ Favorites' : '',
+      filter ? `${CATEGORY_EMOJI[filter] ?? '📦'} ${filter}` : '',
+      filterTag ? `#${filterTag}` : '',
+    ].filter(Boolean);
+    filterSubtotalLabel.textContent = parts.join(' · ');
     filterSubtotalAmount.textContent = formatCurrency(filterTotal);
     filterSubtotal.hidden = false;
   } else {
@@ -629,9 +822,11 @@ function render() {
       ? 'No favorited expenses. Tap ★ on any expense to save it here.'
       : searchQuery
         ? 'No matching expenses.'
-        : filter
-          ? 'No expenses in this category.'
-          : 'No expenses yet. Tap + to add one.';
+        : filterTag
+          ? `No expenses tagged "${filterTag}".`
+          : filter
+            ? 'No expenses in this category.'
+            : 'No expenses yet. Tap + to add one.';
     frag.appendChild(li);
   } else {
     // Only render the visible slice — the key perf win
@@ -683,14 +878,19 @@ function createItem(expense) {
     <div class="item-body">
       <div class="item-top">
         <span class="item-category">${expense.category}</span>
-        <span class="item-amount">${formatCurrency(expense.amount)}</span>
+        <div class="item-amount-group">
+          ${expense.splitWith ? `<span class="item-split-badge">÷${expense.splitWith} · ${formatCurrency(effectiveAmount(expense))}</span>` : ''}
+          <span class="item-amount">${formatCurrency(expense.amount)}</span>
+        </div>
       </div>
       <div class="item-meta">
         ${expense.note ? `<span class="item-note" title="${esc(expense.note)}">${esc(expense.note)}</span>` : ''}
         <span class="item-date">${dateStr}</span>
         ${nextStr ? `<span class="item-next-occurrence">↻ ${nextStr}</span>` : ''}
       </div>
+      ${expense.tags?.length ? `<div class="item-tags">${expense.tags.map(t => `<span class="item-tag" data-tag="${esc(t)}">${esc(t)}</span>`).join('')}</div>` : ''}
     </div>
+    ${expense.receiptImage ? `<img class="receipt-thumb" src="${expense.receiptImage}" alt="Receipt" title="View receipt" />` : ''}
     <button class="recurrence-btn${isRec ? ' is-recurring' : ''}" title="${isRec ? 'Remove recurring' : 'Mark as recurring'}" aria-label="${isRec ? 'Remove recurring' : 'Mark as recurring'}" aria-pressed="${isRec}">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
         <path d="M1.5 4.5A5 5 0 0112 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
